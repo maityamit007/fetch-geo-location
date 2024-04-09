@@ -36,7 +36,7 @@ function Form() {
                 'state': data.data.address.state,
                 'city': data.data.address.city,
                 'postalCode': data.data.address.postcode,
-                'zone': data.data.address.suburb,
+                'zone': 'Bali',
               }
             })
           });
@@ -56,7 +56,16 @@ function Form() {
 
   useEffect(()=>{
     if(addressDetails['country'] !== '' && addressDetails['ipAddress'] !== ''){
-      axios.post(`http://localhost:3000/api/location/save-location`, addressDetails);
+      axios.post(`/api/location/save-location`, addressDetails, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        }
+      }).then((resp)=>{
+        console.log(resp);
+        if(resp.data){
+          alert(`${resp.data.message}`);
+        }
+      });
     }
   }, [addressDetails])
 

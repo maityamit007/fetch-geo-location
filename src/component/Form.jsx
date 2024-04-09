@@ -2,18 +2,19 @@ import React, { useEffect, useState } from 'react';
 import './Form.css';
 import CircularProgress from '@mui/material/CircularProgress';
 import GoogleMapReact from 'google-map-react';
+import axios from 'axios';
 
 function Form() {
   let [loader, setLoder] = useState(false);
   let [addressDetails, setAddressDetails] = useState({
-    'Latitude': '',
-    'Longitude': '',
-    'Country': '',
-    'State': '',
-    'City': '',
-    'Postal Code': '',
-    'Zone': '',
-    'IP Address': ''
+    'latitude': '',
+    'longitude': '',
+    'country': '',
+    'state': '',
+    'city': '',
+    'postalCode': '',
+    'zone': '',
+    'ipAddress': ''
   });
 
   const executeBeforeConfirmation = () => {
@@ -24,21 +25,18 @@ function Form() {
   const confirmAction = () => {
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition((pos) => {
-        console.log(pos);
         if (pos) {
-          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos?.coords?.latitude}&lon=${pos?.coords?.longitude}`).then((resp) => {
-            return resp.json();
-          }).then((data) => {
+          axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos?.coords?.latitude}&lon=${pos?.coords?.longitude}`).then((data) => {
             setAddressDetails((prevState) => {
               return {
                 ...prevState,
-                'Latitude': pos?.coords?.latitude,
-                'Longitude': pos?.coords?.longitude,
-                'Country': data.address.country,
-                'State': data.address.state,
-                'City': data.address.city,
-                'Postal Code': data.address.postcode,
-                'Zone': data.address.suburb,
+                'latitude': pos?.coords?.latitude,
+                'longitude': pos?.coords?.longitude,
+                'country': data.data.address.country,
+                'state': data.data.address.state,
+                'city': data.data.address.city,
+                'postalCode': data.data.address.postcode,
+                'zone': data.data.address.suburb,
               }
             })
           });
@@ -46,16 +44,21 @@ function Form() {
         } else {
           resolve(false);
         }
-        fetch(`https://ipinfo.io/json?token=bac82808729b5d`)
-          .then(response => { return response.json() })
+        axios.get(`https://ipinfo.io/json?token=bac82808729b5d`)
           .then(data => {
             setAddressDetails((prevState) => {
-              return { ...prevState, 'IP Address': data.ip }
+              return { ...prevState, 'ipAddress': data.data.ip }
             })
           })      
         })
     });
   }
+
+  useEffect(()=>{
+    if(addressDetails['country'] !== '' && addressDetails['ipAddress'] !== ''){
+      axios.post(`http://localhost:3000/api/location/save-location`, addressDetails);
+    }
+  }, [addressDetails])
 
   const fetchLocation = () => {
     setLoder(true);
@@ -94,18 +97,18 @@ function Form() {
       </div>
       <div className='mt-10'>
         <div className='bg-gray-200 h-40 w-full rounded flex justify-center items-center'>
-          {addressDetails['Country'] !== '' &&
+          {addressDetails['country'] !== '' &&
             <span className='font-bold text-black'>
-              {`${addressDetails['City']},${addressDetails['State']},${addressDetails['Postal Code']}, ${addressDetails['Country']}`}
+              {`${addressDetails['zone']},${addressDetails['city']},${addressDetails['state']},${addressDetails['postalCode']}, ${addressDetails['country']}`}
             </span>
           }
         </div>
         <div className='mt-10'>
-          {addressDetails['Latitude'] !== '' &&
+          {addressDetails['latitude'] !== '' &&
             <div style={{ height: '400px', width: '100%' }}>
               <GoogleMapReact
                 bootstrapURLKeys={{ key: '' }}
-                defaultCenter={{ lat: addressDetails['Latitude'], lng: addressDetails['Longitude'] }}
+                defaultCenter={{ lat: addressDetails['latitude'], lng: addressDetails['longitude'] }}
                 defaultZoom={10}
               ></GoogleMapReact>
             </div>
